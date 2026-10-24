@@ -20,18 +20,25 @@ class LLMClient:
 
     def chat(self, user_input: str):
 
-        logger.info("start llm")
+        logger.info("Starting model request, model=%s", self.model)
 
-        response = self.client.chat.completions.create(
-            model=self.model,
-            messages=[{
-                "role": "user",
-                "content": user_input,
-            }],
-            stream=False,
-        )
+        try:
+            response = self.client.chat.completions.create(
+                model=self.model,
+                messages=[{
+                    "role": "user",
+                    "content": user_input,
+                }],
+                stream=False,
+            )
 
-        logger.info("start llm success")
+            content = response.choices[0].message.content
 
-        content = response.choices[0].message.content
-        return content or ""
+            logger.info("Model request completed, model=%s", self.model)
+
+            return content or ""
+
+        except Exception:
+            logger.exception("Model request failed, model=%s", self.model)
+            raise
+
