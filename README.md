@@ -1,4 +1,4 @@
-# MiniCodeAgent
+# ZeroCodeAgent
 A local software development agent
 
 # 项目执行过程

@@ -3,9 +3,9 @@ requires = ["setuptools>=68"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "local-code-agent"
+name = "zerocode"
 version = "0.1.0"
-description = "A local AI coding agent"
+description = "A local coding agent"
 requires-python = ">=3.11"
 dependencies = [
     "openai",
@@ -16,6 +16,10 @@ dependencies = [
 dev = [
     "pytest>=8.0",
 ]
+
+
+[tool.setuptools.packages.find]
+where = ["src"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
