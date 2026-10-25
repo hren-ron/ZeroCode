@@ -3,22 +3,43 @@ A local software development agent
 
 # 项目执行过程
 
-## 第一步：确认 .env 中的配置
+## 第一步：确认配置
 
-1. 按照example.env中的字段，创建.env文件
+ZeroCode需要使用LLM，因此先配置LLM的API Key等参数。
+
+如果使用云端大模型，则按以下步骤进行配置（以百炼大模型为例）。
+
+2. 按照example.env中的字段，创建.env文件
 
 ```commandline
 cp exmple.env .env
 ```
 
 2. 检查项目根目录下的 .env，确认有以下四项：
+```aiignore
 BAILIAN_API_KEY=你的百炼API_KEY
 BAILIAN_WORKSPACE_ID=你的工作空间ID
 BAILIAN_BASE_URL=你的百炼API地址
 BAILIAN_MODEL=你的模型名称
+```
+
+如果使用本地模型，则需要先在本地启动模型（以ollama为例）。
+
+```aiignore
+ollama run qwen2.5-coder:14b
+```
+
 
 ## 第二步：安装依赖
+```aiignore
+python -m pip install -e ".[dev]"
 
+```
+
+## 第三步：执行测试
+```aiignore
+python -m pytest -v 
+```
 
 # 整体开发路线
 
