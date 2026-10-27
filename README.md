@@ -52,6 +52,8 @@ python -m pytest -v
 
 下一步：实现 Workspace 路径管理
 
+**让 Agent 的文件操作统一经过 Workspace，并限制在指定的项目目录内。**
+
 按下面的顺序逐步实现：
 1. 创建 Workspace 类，初始化项目根目录。
 2. 实现 resolve_path()，将相对路径解析成绝对路径。
