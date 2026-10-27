@@ -1,17 +1,18 @@
 import logging
 from collections.abc import Callable
 from dataclasses import dataclass
-from logging import getLogger
 from typing import Any
 
+from zerocode.tools.schema import ToolSchema
 
-logger = logging,getLogger(__name__)
+logger = logging.getLogger(__name__)
 
 @dataclass(frozen=True)
 class Tool:
     name: str
     description: str
     handler: Callable[..., Any]
+    schema: ToolSchema
 
 
 class ToolRegistry:
@@ -24,6 +25,7 @@ class ToolRegistry:
         name: str,
         description: str,
         handler: Callable[..., Any],
+        schema: ToolSchema,
     ) -> None:
 
         if not name.strip():
@@ -32,7 +34,15 @@ class ToolRegistry:
         if name in self._tools:
             raise ValueError(f"Tool already registered: {name}")
 
-        self._tools[name] = Tool(name=name, description=description, handler=handler)
+        if not isinstance(schema, ToolSchema):
+            raise TypeError("schema must be a ToolSchema instance")
+
+        self._tools[name] = Tool(
+            name=name,
+            description=description,
+            handler=handler,
+            schema=schema,
+        )
 
         logger.info("Tool registered, name=%s", name)
 
@@ -65,6 +75,10 @@ class ToolRegistry:
             raise TypeError("Tool arguments must be a dictionary")
 
         try:
+            # 验证参数是否符合 Schema。
+            tool.schema.validate(arguments)
+
+            # 校验通过后，才执行 handler。
             result = tool.handler(**arguments)
 
             logger.info(

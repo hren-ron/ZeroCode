@@ -1,5 +1,12 @@
 from zerocode.tools.registry import ToolRegistry
+from zerocode.tools.schema import ToolSchema, ToolParameter
 
+add_schema = ToolSchema(
+    parameters=(
+        ToolParameter(name="a", type="integer"),
+        ToolParameter(name="b", type="integer"),
+    )
+)
 
 def test_register_tool():
     registry = ToolRegistry()
@@ -11,6 +18,7 @@ def test_register_tool():
         name="hello",
         description="Say hello to a user",
         handler=hello,
+        schema=add_schema,
     )
 
     tool = registry.get("hello")
@@ -32,12 +40,14 @@ def test_list_tools():
         name="hello",
         description="Say hello",
         handler=hello,
+        schema=add_schema,
     )
 
     registry.register(
         name="goodbye",
         description="Say goodbye",
         handler=goodbye,
+        schema=add_schema,
     )
 
     tools = registry.list_tools()
@@ -59,6 +69,7 @@ def test_register_duplicate_tool():
         name="hello",
         description="Say hello",
         handler=hello,
+        schema=add_schema,
     )
 
     with pytest.raises(
@@ -69,6 +80,7 @@ def test_register_duplicate_tool():
             name="hello",
             description="Another hello",
             handler=hello,
+            schema=add_schema,
         )
 
 def test_get_unknown_tool():
