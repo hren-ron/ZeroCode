@@ -95,6 +95,29 @@ class ToolSchema:
                     f"got {type(value).__name__}"
                 )
 
+    def to_json_schema(self) -> dict[str, Any]:
+        """Convert the tool schema to a JSON Schema object."""
+        properties = {}
+
+        required = []
+
+        for parameter in self.parameters:
+            properties[parameter.name] = {
+                "type": parameter.type,
+                "description": parameter.description,
+            }
+
+            if parameter.required:
+                required.append(parameter.name)
+
+        return {
+            "type": "object",
+            "properties": properties,
+            "required": required,
+            "additionalProperties": self.allow_extra,
+        }
+
+
     @staticmethod
     def _matches_type(value: Any, expected_type: str) -> bool:
         """Return whether a value matches a supported schema type."""
