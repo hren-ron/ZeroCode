@@ -121,3 +121,50 @@ def test_schema_can_allow_extra_parameters() -> None:
         "path": "README.md",
         "custom_option": 123,
     })
+
+def test_to_json_schema() -> None:
+    schema = ToolSchema(
+        parameters=(
+            ToolParameter(
+                name="path",
+                type="string",
+                description="File path",
+            ),
+            ToolParameter(
+                name="encoding",
+                type="string",
+                description="Text encoding",
+                required=False,
+            ),
+        )
+    )
+
+    result = schema.to_json_schema()
+
+    assert result == {
+        "type": "object",
+        "properties": {
+            "path": {
+                "type": "string",
+                "description": "File path",
+            },
+            "encoding": {
+                "type": "string",
+                "description": "Text encoding",
+            },
+        },
+        "required": ["path"],
+        "additionalProperties": False,
+    }
+
+def test_to_json_schema_without_parameters() -> None:
+    schema = ToolSchema()
+
+    result = schema.to_json_schema()
+
+    assert result == {
+        "type": "object",
+        "properties": {},
+        "required": [],
+        "additionalProperties": False,
+    }
