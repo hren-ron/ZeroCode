@@ -52,6 +52,78 @@ Agent：将错误作为 tool 消息加入上下文
 4. 实现Tool Timeout
 实现工具执行超时控制。
 
+这一阶段分成三个小步骤 
+- 设计超时机制：理解同步函数、线程池和异步超时的区别。 
+- 实现 ToolExecutor：统一管理工具执行和超时。 
+- 接入 Agent：让 Agent 能够处理超时，并将结果反馈给模型。
+
+
+with ThreadPoolExecutor(...) 退出时默认会等待正在运行的任务结束。因此，如果工具卡住 60 秒，即使 10 秒时抛出超时异常，退出 with 时仍可能等待剩余的 50 秒。
+
+所以我们不能简单地把上面的代码直接当成完整的超时实现。
+
+因此，我们把超时机制独立成一个 ToolExecutor，不直接塞进 Agent 或 ToolRegistry。
+
+整体调用链调整为：
+
+```aiignore
+Agent
+  |
+  v
+ToolExecutor
+  |
+  v
+ThreadPoolExecutor
+  |
+  v
+ToolRegistry.execute()
+  |
+  v
+具体工具
+```
+
+这样职责比较清晰：
+- ToolRegistry：负责工具注册、参数校验和实际调用。
+- ToolExecutor：负责线程池调度、超时控制。
+- Agent：负责模型交互、工具调用循环和错误反馈。
+
+还有一个边界需要记住：**线程超时只能让调用方停止等待，不能杀死正在运行的工具线程。** 所以我们先实现调用方超时和线程池容量限制；以后如果需要强制终止不可信或可能永久卡死的工具，再考虑进程隔离。
+
+5. 解决线程池资源耗尽问题
+
+需要进一步考虑： 
+- 如何限制等待队列长度？ 
+- 如何避免超时任务无限占用线程？ 
+- 如何避免重复创建线程池？ 
+- Agent 退出时如何正确释放资源？
+
+建议：先增加并发提交限制和资源管理，再接入 Agent。
+
+还有一个架构原则：对于可能永久阻塞、需要强制终止的工具，最终应采用进程隔离，而不是依赖线程超时。
+
+**使用 BoundedSemaphore 控制容量**
+
+Python 的 ThreadPoolExecutor 虽然有 max_workers，但内部提交队列默认没有容量上限。
+用 threading.BoundedSemaphore 增加一层容量控制
+
+6. 完善 ToolExecutor 的资源生命周期管理
+
+解决三个问题：
+- 如何确保线程池在 Agent 退出时正确关闭？
+- 如何避免重复调用 shutdown() 带来的问题？
+- 是否需要支持 with ToolExecutor(...) as executor:？
+
+7. 设计问题：如何避免 execute() 与 shutdown() 之间的竞态条件。
+
+目前 execute() 和 shutdown() 之间还存在并发竞争：
+- 线程 A 检查容量并获得 semaphore。
+- 线程 B 调用 shutdown()，关闭线程池。
+- 线程 A 调用 submit()，得到 RuntimeError。
+
+目前这种情况虽然不会造成 semaphore 泄漏，但存在一个问题：execute() 没有明确检查执行器是否已经关闭，而是依赖底层线程池抛出异常。
+
+- 明确关闭状态检查: 在 ToolExecutor 中增加一个私有方法
+
 ## 2026.10.31
 
 实现agent loop:

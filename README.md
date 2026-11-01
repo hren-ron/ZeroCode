@@ -1,4 +1,4 @@
-# ZeroCodeAgent
+# ZeroCode
 A local software development agent
 
 # 快速开始
