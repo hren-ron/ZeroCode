@@ -74,3 +74,19 @@ def test_path_traversal_is_rejected(
             )
     finally:
         outside_file.unlink(missing_ok=True)
+
+def test_register_list_files_tool(tmp_path):
+    workspace = Workspace(tmp_path)
+    (tmp_path / "src").mkdir()
+    (tmp_path / "src" / "main.py").write_text(
+        "print('hello')",
+        encoding="utf-8",
+    )
+
+    registry = ToolRegistry()
+    register_builtin_tools(registry, workspace)
+
+    result = registry.execute("list_files", {})
+
+    assert "src" in result
+    assert "src/main.py" in result
