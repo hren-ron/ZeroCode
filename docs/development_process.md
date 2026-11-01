@@ -1,5 +1,57 @@
 
 
+
+## 2026.11.1
+
+1. 实现工具执行失败后的错误反馈机制（Tool Error Recovery）。
+
+工具执行失败时，不应该让整个 Agent 立即退出，而应该把错误反馈给模型，让模型判断是否需要修正参数、换一种工具调用方式，或者向用户解释问题。
+
+```aiignore
+用户：读取 README.md
+
+模型：调用 read_file("README.md")
+                 |
+                 v
+工具：FileNotFoundError
+                 |
+                 v
+Agent：将错误作为 tool 消息加入上下文
+                 |
+                 v
+模型：根据错误重新判断
+                 |
+          +------+------+
+          |             |
+       再次调用工具    返回错误说明
+```
+
+2. 实现
+区分可恢复错误与不可恢复错误，并限制模型反复调用同一个失败工具。
+
+实际上异常有不同性质：
+
+| 异常    | 示例                   | 处理策略   |
+|-------|----------------------|--------|
+| 参数错误  | ValueError、TypeError | 反馈模型   |
+| 文件不存在 | 	FileNotFoundError   | 	反馈模型  |
+| 权限不足	 | PermissionError	     | 反馈模型                 |
+|工具不存在|	KeyError|	反馈模型|
+|JSON 解析失败|	JSONDecodeError|	反馈模型|
+|程序内部错误	|AttributeError、意外的 RuntimeError|	直接抛出|
+
+这里的分类是初始策略。比如某些 RuntimeError 也可能是业务错误，后续可以通过自定义异常进一步细分。
+
+3. 实现防止工具重复调用
+
+- 对工具名称和参数生成 Fingerprint。 
+- 记录失败的工具调用。
+- 检测重复失败调用。
+- 达到阈值后停止重试，并返回明确错误。
+
+4. 实现Tool Timeout
+实现工具执行超时控制。
+
 ## 2026.10.31
 
 实现agent loop:
@@ -25,6 +77,7 @@
 5. 使用 Mock 编写 Agent Loop 测试，最后再连接本地 Ollama 实测。
 
 OpenAI-compatible Tool Calling 接口，Ollama 是否支持当前模型的工具调用能力，还需要在最后进行实际验证。
+
 
 工具调用的流程如下：
 

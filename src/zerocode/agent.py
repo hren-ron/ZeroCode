@@ -3,9 +3,19 @@ import logging
 from typing import Any
 
 from zerocode.llm.client import LLMClient
+from zerocode.tools.guard import ToolCallGuard
 from zerocode.tools.registry import ToolRegistry
 
 logger = logging.getLogger(__name__)
+
+RECOVERABLE_TOOL_ERRORS = (
+    ValueError,
+    TypeError,
+    KeyError,
+    FileNotFoundError,
+    PermissionError,
+    OSError,
+)
 
 class Agent:
 
@@ -14,6 +24,7 @@ class Agent:
         llm_client: LLMClient,
         tool_registry: ToolRegistry,
         max_iterations: int = 10,
+        max_tool_failures: int = 2,
     ) -> None:
 
         if max_iterations <= 0:
@@ -21,9 +32,15 @@ class Agent:
                 "max_iterations must be greater than zero"
             )
 
+        if max_tool_failures <= 0:
+            raise ValueError(
+                "max_tool_failures must be greater than zero"
+            )
+
         self.llm_client = llm_client
         self.tool_registry = tool_registry
         self.max_iterations = max_iterations
+        self.max_tool_failures = max_tool_failures
 
 
     def execute_tool_call(self, tool_call: Any) -> dict[str, str]:
@@ -68,6 +85,8 @@ class Agent:
 
         tools = self.tool_registry.to_openai_tools()
 
+        guard = ToolCallGuard(max_failures=self.max_tool_failures)
+
         for iteration in range(self.max_iterations):
             response = self.llm_client.chat_with_tools(
                 messages=messages,
@@ -83,7 +102,45 @@ class Agent:
 
             # 执行模型请求的工具
             for tool_call in response.tool_calls:
-                tool_result = self.execute_tool_call(tool_call)
+
+                tool_name = tool_call.function.name
+                fingerprint = guard.fingerprint(tool_name, tool_call.function.arguments)
+
+                if guard.is_blocked(fingerprint):
+                    logger.warning(
+                        "Tool call blocked after repeated failures, tool=%s",
+                        tool_name,
+                    )
+
+                    tool_result = {
+                        "role": "tool",
+                        "tool_call_id": tool_call.id,
+                        "content": (
+                            "Tool call blocked: this exact tool call "
+                            "has failed too many times. "
+                            "Please change the arguments or use another approach."
+                        ),
+                    }
+                else:
+
+
+                    try:
+                        tool_result = self.execute_tool_call(tool_call)
+
+                    except RECOVERABLE_TOOL_ERRORS as exc:
+                        logger.exception("Tool execution failed, tool_call_id=%s",tool_call.id)
+
+                        # 关键：记录工具执行失败
+                        guard.record_failure(fingerprint)
+
+                        tool_result = {
+                            "role": "tool",
+                            "tool_call_id": tool_call.id,
+                            "content": (
+                                f"Tool execution failed: "
+                                f"{type(exc).__name__}: {exc}"
+                            ),
+                        }
                 messages.append(tool_result)
 
         raise RuntimeError(
