@@ -2,8 +2,6 @@ import json
 import logging
 from typing import Any
 
-from click import argument
-
 from zerocode.llm.client import LLMClient
 from zerocode.tools.registry import ToolRegistry
 
@@ -15,9 +13,17 @@ class Agent:
         self,
         llm_client: LLMClient,
         tool_registry: ToolRegistry,
+        max_iterations: int = 10,
     ) -> None:
+
+        if max_iterations <= 0:
+            raise ValueError(
+                "max_iterations must be greater than zero"
+            )
+
         self.llm_client = llm_client
         self.tool_registry = tool_registry
+        self.max_iterations = max_iterations
 
 
     def execute_tool_call(self, tool_call: Any) -> dict[str, str]:
@@ -62,7 +68,7 @@ class Agent:
 
         tools = self.tool_registry.to_openai_tools()
 
-        while True:
+        for iteration in range(self.max_iterations):
             response = self.llm_client.chat_with_tools(
                 messages=messages,
                 tools=tools
@@ -79,4 +85,8 @@ class Agent:
             for tool_call in response.tool_calls:
                 tool_result = self.execute_tool_call(tool_call)
                 messages.append(tool_result)
+
+        raise RuntimeError(
+            f"Agent exceeded maximum iterations: {self.max_iterations}"
+        )
 
