@@ -1,7 +1,7 @@
 import logging
 from concurrent.futures import (
     ThreadPoolExecutor,
-    TimeoutError as FutureTimeoutError,
+    TimeoutError as FutureTimeoutError, wait,
 )
 from threading import BoundedSemaphore, Lock
 from typing import Any, Callable
@@ -79,16 +79,9 @@ class ToolExecutor:
 
         logger.info("Submitting tool execution")
 
-        try:
-            result = future.result(timeout=self.timeout)
+        done, _ = wait((future,), timeout=self.timeout)
 
-            logger.info("Tool execution completed")
-            return result
-
-        except FutureTimeoutError:
-
-            if future.done():
-                raise
+        if not done:
 
             future.cancel()
 
@@ -99,9 +92,15 @@ class ToolExecutor:
 
             raise ToolTimeoutError(
                 f"Tool execution exceeded {self.timeout} seconds"
-            ) from None
+            )
 
-    def shutdown(self):
+        result = future.result()
+
+        logger.info("Tool execution completed")
+        return result
+
+
+    def shutdown(self) -> None:
 
         with self._shutdown_lock:
 

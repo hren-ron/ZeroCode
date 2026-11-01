@@ -3,6 +3,7 @@ import logging
 from typing import Any
 
 from zerocode.llm.client import LLMClient
+from zerocode.tools.executor import ToolExecutor, ToolCapacityError
 from zerocode.tools.guard import ToolCallGuard
 from zerocode.tools.registry import ToolRegistry
 
@@ -15,16 +16,18 @@ RECOVERABLE_TOOL_ERRORS = (
     FileNotFoundError,
     PermissionError,
     OSError,
+    ToolCapacityError,
 )
 
 class Agent:
 
     def __init__(
         self,
-        llm_client: LLMClient,
-        tool_registry: ToolRegistry,
+        client: LLMClient,
+        registry: ToolRegistry,
         max_iterations: int = 10,
         max_tool_failures: int = 2,
+        executor: ToolExecutor | None=None,
     ) -> None:
 
         if max_iterations <= 0:
@@ -37,10 +40,16 @@ class Agent:
                 "max_tool_failures must be greater than zero"
             )
 
-        self.llm_client = llm_client
-        self.tool_registry = tool_registry
+        self.client = client
+        self.registry = registry
         self.max_iterations = max_iterations
         self.max_tool_failures = max_tool_failures
+
+        # 标记 Agent 是否拥有执行器
+        self._owns_executor = executor is None
+
+        # 实际执行工具的执行器
+        self.executor = executor or ToolExecutor()
 
 
     def execute_tool_call(self, tool_call: Any) -> dict[str, str]:
@@ -60,7 +69,11 @@ class Agent:
             tool_call_id,
         )
 
-        result = self.tool_registry.execute(tool_name, arguments)
+        result = self.executor.execute(
+            self.registry.execute,
+            tool_name,
+            arguments,
+        )
 
         return {
             "role": "tool",
@@ -83,12 +96,12 @@ class Agent:
             },
         ]
 
-        tools = self.tool_registry.to_openai_tools()
+        tools = self.registry.to_openai_tools()
 
         guard = ToolCallGuard(max_failures=self.max_tool_failures)
 
         for iteration in range(self.max_iterations):
-            response = self.llm_client.chat_with_tools(
+            response = self.client.chat_with_tools(
                 messages=messages,
                 tools=tools
             )
@@ -127,6 +140,8 @@ class Agent:
                     try:
                         tool_result = self.execute_tool_call(tool_call)
 
+                        guard.record_success(fingerprint)
+
                     except RECOVERABLE_TOOL_ERRORS as exc:
                         logger.exception("Tool execution failed, tool_call_id=%s",tool_call.id)
 
@@ -146,4 +161,17 @@ class Agent:
         raise RuntimeError(
             f"Agent exceeded maximum iterations: {self.max_iterations}"
         )
+
+    def close(self) -> None:
+
+        if not self._owns_executor:
+            return
+        self.executor.shutdown()
+
+    def __enter__(self) -> "Agent":
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb) -> None:
+        self.close()
+
 

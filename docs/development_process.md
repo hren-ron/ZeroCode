@@ -124,6 +124,26 @@ Python 的 ThreadPoolExecutor 虽然有 max_workers，但内部提交队列默�
 
 - 明确关闭状态检查: 在 ToolExecutor 中增加一个私有方法
 
+
+8. toolExecutor接入agent
+
+职责分工如下：
+
+- Agent
+决定调用哪个工具、组织对话
+
+
+- ToolExecutor
+超时控制、并发限制、任务调度
+
+
+- ToolRegistry
+工具查找、参数校验、调用 Handler
+
+
+- Builtin Tools
+read_file 等实际工具
+
 ## 2026.10.31
 
 实现agent loop:
