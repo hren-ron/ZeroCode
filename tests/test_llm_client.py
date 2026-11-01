@@ -90,3 +90,83 @@ def test_chat_logs_exception_and_reraises_error(
         "Model request failed, model=%s",
         "qwen2.5-coder:14b",
     )
+
+
+def test_chat_with_tools_returns_tool_calls() -> None:
+    mock_client = MagicMock()
+
+    tool_call = MagicMock()
+    tool_call.id = "call_123"
+
+    message = MagicMock()
+    message.content = None
+    message.tool_calls = [tool_call]
+
+    mock_client.chat.completions.create.return_value.choices = [
+        MagicMock(message=message)
+    ]
+
+    client = LLMClient()
+    client.client = mock_client
+
+    messages = [
+        {"role": "user", "content": "Read README.md"}
+    ]
+
+    tools = [
+        {
+            "type": "function",
+            "function": {
+                "name": "read_file",
+                "description": "Read a file",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "path": {"type": "string"}
+                    },
+                    "required": ["path"],
+                },
+            },
+        }
+    ]
+
+    result = client.chat_with_tools(messages, tools)
+
+    assert result is message
+    assert result.tool_calls[0].id == "call_123"
+
+    mock_client.chat.completions.create.assert_called_once()
+
+    kwargs = mock_client.chat.completions.create.call_args.kwargs
+
+    assert kwargs["tools"] == tools
+    assert kwargs["tool_choice"] == "auto"
+    assert kwargs["stream"] is False
+
+
+def test_chat_with_tools_without_tools() -> None:
+    mock_client = MagicMock()
+
+    message = MagicMock()
+    message.content = "Hello"
+    message.tool_calls = None
+
+    mock_client.chat.completions.create.return_value.choices = [
+        MagicMock(message=message)
+    ]
+
+    client = LLMClient()
+    client.client = mock_client
+
+    messages = [
+        {"role": "user", "content": "Hello"}
+    ]
+
+    result = client.chat_with_tools(messages)
+
+    assert result is message
+
+    kwargs = mock_client.chat.completions.create.call_args.kwargs
+
+    assert "tools" not in kwargs
+    assert "tool_choice" not in kwargs

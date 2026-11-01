@@ -96,5 +96,20 @@ class ToolRegistry:
             raise
 
 
+    def to_openai_tools(self) -> list[dict]:
+        """Export registered tools in OpenAI function-calling format."""
+
+        tools = []
+        for tool in self._tools.values():
+            tools.append({
+                "type": "function",
+                "function": {
+                    "name": tool.name,
+                    "description": tool.description,
+                    "parameters": tool.schema.to_json_schema(),
+                },
+            })
+
+        return tools
 
 

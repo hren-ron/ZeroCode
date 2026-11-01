@@ -1,4 +1,5 @@
 import logging
+from typing import Any
 
 from openai import OpenAI
 
@@ -42,3 +43,32 @@ class LLMClient:
             logger.exception("Model request failed, model=%s", self.model)
             raise
 
+
+    def chat_with_tools(self, messages: list[dict[str, Any]], tools: list[dict[str, Any]] | None=None) -> Any:
+
+        logger.info("Starting model request with tools, model=%s",self.model)
+
+        try:
+            request_params: dict[str, Any] = {
+                "model": self.model,
+                "messages": messages,
+                "stream": False,
+            }
+
+            if tools:
+                request_params["tools"] = tools
+                request_params["tool_choice"] = "auto"
+
+            response = self.client.chat.completions.create(**request_params)
+
+            message = response.choices[0].message
+
+            logger.info("Model request completed, model=%s, tool_calls=%s",self.model, len(message.tool_calls or []))
+
+            return message
+
+        except Exception:
+
+            logger.exception("Model request with tools failed, model=%s",self.model)
+
+            raise

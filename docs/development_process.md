@@ -26,6 +26,35 @@
 
 OpenAI-compatible Tool Calling 接口，Ollama 是否支持当前模型的工具调用能力，还需要在最后进行实际验证。
 
+工具调用的流程如下：
+
+1. Agent
+
+2. ToolRegistry.to_openai_tools()
+导出工具定义
+
+3. LLMClient.chat_with_tools()
+模型决定是否调用工具
+
+4. ToolRegistry.execute()
+执行模型选择的工具
+
+5. 将工具执行结果交回模型，继续循环，直到模型给出最终回答
+
+
+agent loop的执行过程：
+1. 用户输入：
+请读取 README.md
+
+2. LLM 请求：
+chat_with_tools(messages, tools)
+
+3. 判断模型响应：
+是否包含 tool_calls？
+没有工具调用，返回最终回答。存在工具调用，执行工具，保存执行结果
+
+4. 工具执行完成后，将结果加入 messages，再次请求 LLM。
+
 ## 2026.10.28
 当前已完成
 - ToolParameter: 定义参数名称、类型、描述和是否必填。

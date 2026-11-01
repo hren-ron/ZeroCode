@@ -91,3 +91,104 @@ def test_get_unknown_tool():
         match="Tool not found: hello",
     ):
         registry.get("hello")
+
+
+def test_to_openai_tools_with_single_tool():
+    registry = ToolRegistry()
+
+    schema = ToolSchema(
+        parameters=(
+            ToolParameter(
+                name="path",
+                type="string",
+                description="File path",
+            ),
+        )
+    )
+
+    registry.register(
+        name="read_file",
+        description="Read a file",
+        handler=lambda path: path,
+        schema=schema,
+    )
+
+    tools = registry.to_openai_tools()
+
+    assert len(tools) == 1
+    assert tools[0]["type"] == "function"
+    assert tools[0]["function"]["name"] == "read_file"
+    assert tools[0]["function"]["description"] == "Read a file"
+
+def test_to_openai_tools_includes_json_schema():
+    registry = ToolRegistry()
+
+    schema = ToolSchema(
+        parameters=(
+            ToolParameter(
+                name="path",
+                type="string",
+                description="File path",
+            ),
+            ToolParameter(
+                name="encoding",
+                type="string",
+                description="File encoding",
+                required=False,
+            ),
+        )
+    )
+
+    registry.register(
+        name="read_file",
+        description="Read a file",
+        handler=lambda path, encoding="utf-8": path,
+        schema=schema,
+    )
+
+    tools = registry.to_openai_tools()
+
+    parameters = tools[0]["function"]["parameters"]
+
+    assert parameters == schema.to_json_schema()
+    assert parameters["type"] == "object"
+    assert parameters["required"] == ["path"]
+    assert parameters["properties"]["path"]["type"] == "string"
+    assert parameters["properties"]["encoding"]["type"] == "string"
+
+def test_to_openai_tools_with_multiple_tools():
+    registry = ToolRegistry()
+
+    empty_schema = ToolSchema()
+
+    registry.register(
+        name="read_file",
+        description="Read a file",
+        handler=lambda: "content",
+        schema=empty_schema,
+    )
+
+    registry.register(
+        name="list_files",
+        description="List files",
+        handler=lambda: [],
+        schema=empty_schema,
+    )
+
+    tools = registry.to_openai_tools()
+
+    assert len(tools) == 2
+
+    tool_names = [
+        tool["function"]["name"]
+        for tool in tools
+    ]
+
+    assert tool_names == ["read_file", "list_files"]
+
+def test_to_openai_tools_with_empty_registry():
+    registry = ToolRegistry()
+
+    tools = registry.to_openai_tools()
+
+    assert tools == []
