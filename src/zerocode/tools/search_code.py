@@ -1,6 +1,5 @@
 import logging
 
-from tests.test_read_file import workspace
 from zerocode.workspace import Workspace
 
 logger = logging.getLogger(__name__)

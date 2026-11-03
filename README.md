@@ -41,6 +41,18 @@ python -m pip install -e ".[dev]"
 python -m pytest -v 
 ```
 
+## 第四步：启动本地模型（可选）
+```aiignore
+ollama run qwen2.5-coder:14b
+```
+
+## 第五步：启动服务
+
+1. 如果启动本地实例项目，则
+```aiignore
+python src/zerocode//examples/analyze_project.py
+```
+
 # 当前开发进展
 
 [开发进展](docs/development_process.md)

@@ -64,7 +64,7 @@ class Agent:
             raise ValueError("Tool arguments must be a JSON object")
 
         logger.info(
-            "Executing tool call, tool=%s, call_id=%s",
+            "Tool execution started, tool=%s, call_id=%s",
             tool_name,
             tool_call_id,
         )
@@ -73,6 +73,12 @@ class Agent:
             self.registry.execute,
             tool_name,
             arguments,
+        )
+
+        logger.info(
+            "Tool execution completed, tool=%s, call_id=%s, status=success",
+            tool_name,
+            tool_call_id,
         )
 
         return {

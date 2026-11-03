@@ -1,6 +1,7 @@
 import logging
 from typing import Any
 
+import httpx
 from openai import OpenAI
 
 
@@ -17,11 +18,20 @@ class LLMClient:
     ):
 
         self.model = model
-        self.client = OpenAI(base_url=base_url, api_key=api_key)
+
+        http_client = httpx.Client(
+            trust_env=False,
+            timeout=httpx.Timeout(180.0),
+        )
+
+        self.client = OpenAI(
+            base_url=base_url,
+            api_key=api_key,
+            http_client=http_client,
+        )
 
     def chat(self, user_input: str):
 
-        logger.info("Starting model request, model=%s", self.model)
 
         try:
             response = self.client.chat.completions.create(
@@ -34,8 +44,6 @@ class LLMClient:
             )
 
             content = response.choices[0].message.content
-
-            logger.info("Model request completed, model=%s", self.model)
 
             return content or ""
 

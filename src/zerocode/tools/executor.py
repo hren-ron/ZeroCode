@@ -77,7 +77,6 @@ class ToolExecutor:
                 self._capacity.release()
                 raise
 
-        logger.info("Submitting tool execution")
 
         done, _ = wait((future,), timeout=self.timeout)
 
@@ -96,7 +95,6 @@ class ToolExecutor:
 
         result = future.result()
 
-        logger.info("Tool execution completed")
         return result
 
 
@@ -105,14 +103,11 @@ class ToolExecutor:
         with self._shutdown_lock:
 
             if self._shutdown:
-                logger.debug("Tool executor is already shut down")
                 return
 
             self._shutdown = True
 
             self._executor.shutdown(wait=False, cancel_futures=True)
-
-            logger.info("Tool executor shut down")
 
     def __enter__(self)  -> "ToolExecutor":
         return self

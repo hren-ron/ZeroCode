@@ -16,6 +16,37 @@
 | case_sensitive	 | boolean  |	False|	是否区分大小写|
 | max_results	    | integer	 | 50      | 	最大匹配行数 |
 
+2. 验证 Agent 的自主代码分析能力
+
+测试任务
+
+分析 ZeroCode 项目中 Agent.run() 的执行流程，重点说明：
+- 如何构造初始 messages？
+- 如何调用 LLM？
+- 如何识别和处理 tool_calls？
+- 如何执行工具并将结果返回给 LLM？
+- 什么情况下结束循环？
+- 如何处理工具执行失败？
+
+预期流程：
+```aiignore
+用户提出分析任务
+       ↓
+Agent.run()
+       ↓
+LLMClient.chat_with_tools()
+       ↓
+LLM 决定调用哪个工具
+       ↓
+list_files / search_code / read_file
+       ↓
+工具执行结果返回 LLM
+       ↓
+LLM 继续分析
+       ↓
+输出最终答案
+```
+
 ## 2026.11.2
 
 1. 实现工具
