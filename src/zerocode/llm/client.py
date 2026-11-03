@@ -15,12 +15,13 @@ class LLMClient:
         model: str="qwen2.5-coder:14b",
         base_url: str="http://localhost:11434/v1",
         api_key: str="ollama",
+        trust_env: bool = False,
     ):
 
         self.model = model
 
         http_client = httpx.Client(
-            trust_env=False,
+            trust_env=trust_env,
             timeout=httpx.Timeout(180.0),
         )
 
