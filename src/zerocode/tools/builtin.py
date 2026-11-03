@@ -2,6 +2,7 @@ from zerocode.tools.list_files import ListFilesTool
 from zerocode.tools.read_file import ReadFileTool
 from zerocode.tools.registry import ToolRegistry
 from zerocode.tools.schema import ToolSchema, ToolParameter
+from zerocode.tools.search_code import SearchCodeTool
 from zerocode.workspace import Workspace
 
 
@@ -60,6 +61,47 @@ def register_builtin_tools(
                     name="max_entries",
                     type="integer",
                     description="Maximum number of entries to return.",
+                    required=False,
+                ),
+            )
+        ),
+    )
+
+    search_code_tool = SearchCodeTool(workspace)
+
+    registry.register(
+        name="search_code",
+        description="Search source code by keyword inside the workspace.",
+        handler=search_code_tool.execute,
+        schema=ToolSchema(
+            parameters=(
+                ToolParameter(
+                    name="query",
+                    type="string",
+                    description="Keyword or text to search for.",
+                ),
+                ToolParameter(
+                    name="path",
+                    type="string",
+                    description="Directory path to search.",
+                    required=False,
+                ),
+                ToolParameter(
+                    name="file_pattern",
+                    type="string",
+                    description="File name pattern, such as *.py.",
+                    required=False,
+                ),
+                ToolParameter(
+                    name="case_sensitive",
+                    type="boolean",
+                    description="Whether the search is case-sensitive.",
+                    required=False,
+                ),
+                ToolParameter(
+                    name="max_results",
+                    type="integer",
+                    description="Maximum number of matching lines to return.",
                     required=False,
                 ),
             )

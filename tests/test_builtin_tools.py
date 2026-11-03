@@ -90,3 +90,28 @@ def test_register_list_files_tool(tmp_path):
 
     assert "src" in result
     assert "src/main.py" in result
+
+
+def test_register_search_code_tool(tmp_path):
+    workspace = Workspace(tmp_path)
+
+    src = tmp_path / "src"
+    src.mkdir()
+
+    (src / "agent.py").write_text(
+        "class Agent:\n"
+        "    def execute(self):\n"
+        "        pass\n",
+        encoding="utf-8",
+    )
+
+    registry = ToolRegistry()
+    register_builtin_tools(registry, workspace)
+
+    result = registry.execute(
+        "search_code",
+        {"query": "def execute"},
+    )
+
+    assert len(result) == 1
+    assert "src/agent.py:2:" in result[0]
