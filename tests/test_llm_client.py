@@ -1,6 +1,7 @@
 
 from unittest.mock import MagicMock, patch
 
+import httpx
 import pytest
 
 from zerocode.llm.client import LLMClient
@@ -15,10 +16,13 @@ def test_init_uses_configured_model_and_base_url():
         llm = LLMClient(model=model, base_url=base_url)
 
     assert llm.model == model
-    mock_openai.assert_called_once_with(
-        base_url=base_url,
-        api_key="ollama",
-    )
+    mock_openai.assert_called_once()
+
+    kwargs = mock_openai.call_args.kwargs
+
+    assert kwargs["base_url"] == "http://localhost:11434/v1"
+    assert kwargs["api_key"] == "ollama"
+    assert isinstance(kwargs["http_client"], httpx.Client)
 
 
 @patch("zerocode.llm.client.OpenAI")
