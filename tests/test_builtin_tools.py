@@ -115,3 +115,23 @@ def test_register_search_code_tool(tmp_path):
 
     assert len(result) == 1
     assert "src/agent.py:2:" in result[0]
+
+def test_register_builtin_tools_includes_write_file(tmp_path):
+    workspace = Workspace(tmp_path)
+    registry = ToolRegistry()
+
+    register_builtin_tools(registry, workspace)
+
+    tools = registry.to_openai_tools()
+
+    write_file_tool = next(
+        tool
+        for tool in tools
+        if tool["function"]["name"] == "write_file"
+    )
+
+    parameters = write_file_tool["function"]["parameters"]
+
+    assert parameters["properties"]["path"]["type"] == "string"
+    assert parameters["properties"]["content"]["type"] == "string"
+    assert set(parameters["required"]) == {"path", "content"}

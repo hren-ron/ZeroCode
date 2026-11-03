@@ -3,6 +3,7 @@ from zerocode.tools.read_file import ReadFileTool
 from zerocode.tools.registry import ToolRegistry
 from zerocode.tools.schema import ToolSchema, ToolParameter
 from zerocode.tools.search_code import SearchCodeTool
+from zerocode.tools.write_file import WriteFileTool
 from zerocode.workspace import Workspace
 
 
@@ -106,5 +107,27 @@ def register_builtin_tools(
                 ),
             )
         ),
+    )
+
+    write_file_tool = WriteFileTool(workspace)
+
+    registry.register(
+        name="write_file",
+        description="Create or overwrite a file in the workspace.",
+        schema=ToolSchema(
+            parameters=(
+                ToolParameter(
+                    name="path",
+                    type="string",
+                    description="Relative path of the file to write.",
+                ),
+                ToolParameter(
+                    name="content",
+                    type="string",
+                    description="Content to write into the file.",
+                ),
+            )
+        ),
+        handler=write_file_tool.execute,
     )
 
