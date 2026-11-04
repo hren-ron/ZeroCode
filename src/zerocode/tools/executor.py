@@ -19,7 +19,7 @@ class ToolExecutor:
         self,
         max_workers: int = 4,
         max_queue_size: int = 8,
-        timeout: float = 10.0,
+        timeout: float = 40.0,
     ) -> None:
 
         if max_workers <= 0:
