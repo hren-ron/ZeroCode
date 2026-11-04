@@ -136,7 +136,12 @@ def register_builtin_tools(
 
     registry.register(
         name="run_command",
-        description="Execute a command in the workspace and return its output.",
+        description=(
+            "Execute a command in the workspace and return its output."
+            "The command parameter must be an array of strings, "
+            "not a single string. "
+            "Example: [\"python\", \"-m\", \"pytest\", \"-q\"]."
+        ),
         schema=ToolSchema(
             parameters=(
                 ToolParameter(

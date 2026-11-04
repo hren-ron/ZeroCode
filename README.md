@@ -48,9 +48,10 @@ ollama run qwen2.5-coder:14b
 
 ## 第五步：启动服务
 
-1. 如果启动本地实例项目，则
+1. 如果使用本地实例项目 (src/zerocode/examples/目录下)，则
+
 ```aiignore
-python src/zerocode//examples/analyze_project.py
+python src/zerocode/examples/analyze_project.py
 ```
 
 # 当前开发进展
