@@ -135,3 +135,18 @@ def test_register_builtin_tools_includes_write_file(tmp_path):
     assert parameters["properties"]["path"]["type"] == "string"
     assert parameters["properties"]["content"]["type"] == "string"
     assert set(parameters["required"]) == {"path", "content"}
+
+
+def test_register_builtin_tools_includes_run_command(tmp_path):
+    workspace = Workspace(tmp_path)
+    registry = ToolRegistry()
+
+    register_builtin_tools(registry, workspace)
+
+    result = registry.execute(
+        "run_command",
+        {"command": ["python", "-c", "print('ZeroCode')"]},
+    )
+
+    assert "Exit code: 0" in result
+    assert "ZeroCode" in result

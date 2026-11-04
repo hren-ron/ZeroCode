@@ -51,6 +51,67 @@ LLM 继续分析
 
 先实现最基础的文件写入，不引入 diff、patch、备份等复杂机制。
 
+4. 实现 RunCommandTool
+
+它将允许 Agent：
+- 执行 Python 命令，例如 python main.py。
+- 运行测试，例如 pytest -q。
+- 获取命令的标准输出、错误输出和退出码。
+- 根据执行结果判断问题，并决定是否修改代码。
+
+建议下一步先实现一个最小版本：支持执行命令、设置超时时间、返回执行结果。暂时不扩展复杂的容器隔离和权限系统。
+
+RunCommandTool 是 Coding Agent 从“能够修改代码”走向“能够验证代码”的关键工具。实现后，Agent 就可以形成这样的工作流程：
+
+```aiignore
+读取代码
+   ↓
+分析问题
+   ↓
+write_file 修改代码
+   ↓
+run_command 执行测试
+   ↓
+读取执行结果
+   ↓
+根据错误继续修复
+```
+
+一、先明确 MVP 功能
+第一版只实现以下能力：
+
+- 执行命令	支持 pytest -q、python main.py 等
+- 指定工作目录	默认使用 Workspace 根目录
+- 超时控制	默认 30 秒
+- 捕获输出	获取 stdout、stderr
+- 返回退出码	0 表示成功，非 0 表示失败
+
+安全边界： 这个工具可以执行任意系统命令，因此第一版只允许在本地可信项目中使用，不要把它暴露给不可信用户或远程模型调用环境。暂时不实现复杂沙箱，但会避免通过命令字符串调用 Shell。
+
+二、设计返回结果
+建议统一返回字符串，让模型能够直接读取执行结果：
+```aiignore
+Command: pytest -q
+Exit code: 1
+
+STDOUT:
+...
+
+STDERR:
+...
+```
+
+这样即使测试失败，Agent 也能看到错误信息，并决定下一步操作。
+
+第一版我建议使用 list[str] 表示命令参数，而不是直接使用 Shell 命令字符串。
+
+```aiignore
+["pytest", "-q"]
+["python", "main.py"]
+["python", "-m", "compileall", "src"]
+```
+这样可以使用 subprocess.run() 的 shell=False 模式，避免 Shell 字符串解析带来的额外风险。
+
 ## 2026.11.2
 
 1. 实现工具

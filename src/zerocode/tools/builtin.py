@@ -1,6 +1,7 @@
 from zerocode.tools.list_files import ListFilesTool
 from zerocode.tools.read_file import ReadFileTool
 from zerocode.tools.registry import ToolRegistry
+from zerocode.tools.run_command import RunCommandTool
 from zerocode.tools.schema import ToolSchema, ToolParameter
 from zerocode.tools.search_code import SearchCodeTool
 from zerocode.tools.write_file import WriteFileTool
@@ -129,5 +130,22 @@ def register_builtin_tools(
             )
         ),
         handler=write_file_tool.execute,
+    )
+
+    run_command_tool = RunCommandTool(workspace)
+
+    registry.register(
+        name="run_command",
+        description="Execute a command in the workspace and return its output.",
+        schema=ToolSchema(
+            parameters=(
+                ToolParameter(
+                    name="command",
+                    type="array",
+                    description="Command and arguments, e.g. ['pytest', '-q'].",
+                ),
+            )
+        ),
+        handler=run_command_tool.execute,
     )
 
